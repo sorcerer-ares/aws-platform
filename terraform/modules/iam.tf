@@ -78,3 +78,41 @@ resource "aws_iam_role_policy_attachment" "github_actions_ecr_policy" {
   role       = aws_iam_role.github_actions_role.name
   policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryPowerUser"
 }
+
+resource "aws_iam_role_policy" "github_actions_ephemeral_policy" {
+  name = "preview-github-actions-ephemeral-policy"
+  role = aws_iam_role.github_actions_role.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "ecs:CreateService",
+          "ecs:UpdateService",
+          "ecs:DeleteService",
+          "ecs:DescribeServices",
+          "ecs:RegisterTaskDefinition",
+          "ecs:DeregisterTaskDefinition",
+          "elasticloadbalancing:CreateTargetGroup",
+          "elasticloadbalancing:DeleteTargetGroup",
+          "elasticloadbalancing:DescribeTargetGroups",
+          "elasticloadbalancing:CreateRule",
+          "elasticloadbalancing:DeleteRule",
+          "elasticloadbalancing:DescribeRules",
+          "elasticloadbalancing:ModifyRule"
+        ]
+        Resource = "*"
+      },
+      {
+        Effect = "Allow"
+        Action = "iam:PassRole"
+        Resource = [
+          aws_iam_role.ecs_task_execution_role.arn,
+          aws_iam_role.ecs_task_role.arn
+        ]
+      }
+    ]
+  })
+}

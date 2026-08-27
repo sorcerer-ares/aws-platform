@@ -1,0 +1,49 @@
+name: Destroy Preview Environment
+
+on:
+  pull_request:
+    types: [closed]
+
+permissions:
+  id-token: write
+  contents: read
+  pull-requests: write
+
+jobs:
+  destroy-preview:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Configure AWS Credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: arn:aws:iam::357919579947:role/preview-github-actions-role
+          aws-region: us-east-1
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.6.0
+
+      - name: Destroy Ephemeral Infrastructure
+        env:
+          PR_NUM: ${{ github.event.pull_request.number }}
+        run: |
+          cd terraform/preview-env
+          terraform init -backend-config="key=env/pr-${PR_NUM}.tfstate"
+          terraform destroy -auto-approve \
+            -var="pr_number=${PR_NUM}" \
+            -var="image_tag=dummy"
+
+      - name: Post Destruction Comment
+        uses: actions/github-script@v6
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: "🧹 **Preview Environment Destroyed:** All associated ECS tasks, target groups, and routing rules have been torn down."
+            });

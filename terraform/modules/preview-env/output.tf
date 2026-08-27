@@ -1,21 +1,16 @@
-
-output "repository_url" {
-  description = "The URL of the repository"
-  value       = aws_ecr_repository.app_repo.repository_url
-}
-# 1. ECR Repository URL (Required for GitHub Actions to tag and push Docker images)
+# 1. ECR Repository URL
 output "ecr_repository_url" {
   description = "The URL of the ECR repository"
   value       = aws_ecr_repository.app_repo.repository_url
 }
 
-# 2. ALB DNS Name (The public preview base URL)
+# 2. ALB DNS Name
 output "alb_dns_name" {
   description = "Public DNS name of the Application Load Balancer"
   value       = aws_lb.preview_alb.dns_name
 }
 
-# 3. ALB Listener ARN (Required for dynamic PR routing rules in M4)
+# 3. ALB Listener ARN
 output "alb_listener_arn" {
   description = "ARN of the ALB HTTP listener"
   value       = aws_lb_listener.http_listener.arn
@@ -32,7 +27,7 @@ output "ecs_cluster_arn" {
   value       = aws_ecs_cluster.app_cluster.arn
 }
 
-# 5. Networking Identifiers (Needed for deploying isolated preview services)
+# 5. Networking Identifiers
 output "vpc_id" {
   description = "ID of the VPC"
   value       = aws_vpc.myvpc.id
