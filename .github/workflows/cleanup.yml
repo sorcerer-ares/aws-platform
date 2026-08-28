@@ -1,0 +1,37 @@
+name: Cleanup Ephemeral Preview
+
+on:
+  pull_request:
+    types: [closed]
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  destroy-preview:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Configure AWS Credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: arn:aws:iam::357919579947:role/preview-github-actions-role
+          aws-region: us-east-1
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.6.0
+
+      - name: Destroy Preview Environment
+        env:
+          PR_NUM: ${{ github.event.pull_request.number }}
+        run: |
+          cd terraform/modules/preview-env
+          terraform init -backend-config="key=env/pr-${PR_NUM}.tfstate"
+          terraform destroy -auto-approve \
+            -var="pr_number=${PR_NUM}" \
+            -var="image_tag=dummy"
