@@ -1,3 +1,4 @@
+
 name: Platform CI/CD
 
 on:
@@ -5,8 +6,8 @@ on:
     types: [opened, synchronize, reopened]
 
 permissions:
-  id-token: write 
-  contents: read  
+  id-token: write
+  contents: read
 
 jobs:
   build-and-deploy:
@@ -24,12 +25,14 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Run Unit Tests
-        run: pytest app/tests/
+        env:
+          PYTHONPATH: .
+        run: pytest
 
       - name: Configure AWS Credentials via OIDC
         uses: aws-actions/configure-aws-credentials@v2
         with:
-          role-to-assume: arn:aws:iam::YOUR_AWS_ACCOUNT_ID:role/preview-github-actions-role
+          role-to-assume: arn:aws:iam::357919579947:role/preview-github-actions-role
           aws-region: us-east-1
 
       - name: Login to Amazon ECR
@@ -47,7 +50,7 @@ jobs:
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$PR_TAG
 
-      # --- TERRAFORM DEPLOYMENT STARTS HERE ---
+      # --- TERRAFORM DEPLOYMENT ---
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2
@@ -59,7 +62,7 @@ jobs:
           PR_NUM: ${{ github.event.pull_request.number }}
           IMAGE_TAG: ${{ github.sha }}
         run: |
-          cd terraform/preview-env
+          cd terraform/modules/preview-env
           terraform init -backend-config="key=env/pr-${PR_NUM}.tfstate"
           terraform apply -auto-approve \
             -var="pr_number=${PR_NUM}" \
