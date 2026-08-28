@@ -4,7 +4,7 @@ app = FastAPI()
 
 @app.get("/")
 def read_root():
-    return {"message": "Welcome to the AWS Developer Platform"}
+    return {"message": "Version 2.0 - PR Preview Test"}
 
 @app.get("/health")
 def health_check():
