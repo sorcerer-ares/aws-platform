@@ -67,7 +67,11 @@ resource "aws_iam_role" "github_actions_role" {
           },
           "StringLike" = {
             # IMPORTANT: Replace with your actual GitHub username and repository name!
-            "token.actions.githubusercontent.com:sub" = "repo:sorcerer-ares/aws-platform:*"
+            "token.actions.githubusercontent.com:sub" = [
+              "repo:sorcerer-ares/aws-platform:ref:refs/heads/*",
+              "repo:sorcerer-ares/aws-platform:pull_request",
+              "repo:sorcerer-ares/aws-platform:*"
+            ]
           }
         }
       }
