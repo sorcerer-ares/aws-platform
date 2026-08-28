@@ -25,8 +25,8 @@ jobs:
 
       - name: Run Unit Tests
         env:
-          PYTHONPATH: .
-        run: pytest
+          PYTHONPATH: ./app
+        run: pytest app/tests
 
       - name: Configure AWS Credentials via OIDC
         uses: aws-actions/configure-aws-credentials@v2
