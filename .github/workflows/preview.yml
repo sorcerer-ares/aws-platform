@@ -4,13 +4,12 @@ on:
   pull_request:
     types: [opened, synchronize, reopened]
 
-# Required permissions for OIDC authentication
 permissions:
-  id-token: write 
-  contents: read  
+  id-token: write
+  contents: read
 
 jobs:
-  build-and-push:
+  build-and-deploy:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
@@ -25,17 +24,14 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Run Unit Tests
-        run: pytest app/tests/
-
-      # Placeholder for future security scans (e.g., Trivy)
-      - name: Lint and Security Scans
-        run: echo "Code linting and vulnerability scans passed."
+        env:
+          PYTHONPATH: .
+        run: pytest
 
       - name: Configure AWS Credentials via OIDC
         uses: aws-actions/configure-aws-credentials@v2
         with:
-          # IMPORTANT: Replace with your actual AWS Account ID!
-          role-to-assume: arn:aws:iam::YOUR_AWS_ACCOUNT_ID:role/preview-github-actions-role
+          role-to-assume: arn:aws:iam::357919579947:role/preview-github-actions-role
           aws-region: us-east-1
 
       - name: Login to Amazon ECR
@@ -52,3 +48,22 @@ jobs:
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -t $ECR_REGISTRY/$ECR_REPOSITORY:$PR_TAG .
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$PR_TAG
+
+      # --- TERRAFORM DEPLOYMENT ---
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.6.0
+
+      - name: Deploy Ephemeral Environment via Terraform
+        env:
+          PR_NUM: ${{ github.event.pull_request.number }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          cd terraform/modules/preview-env
+          terraform init -backend-config="key=env/pr-${PR_NUM}.tfstate"
+          terraform apply -auto-approve \
+            -var="pr_number=${PR_NUM}" \
+            -var="image_tag=${IMAGE_TAG}"
+
