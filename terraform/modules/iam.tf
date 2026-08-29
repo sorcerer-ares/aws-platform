@@ -59,18 +59,16 @@ resource "aws_iam_role" "github_actions_role" {
         Action = "sts:AssumeRoleWithWebIdentity"
         Effect = "Allow"
         Principal = {
-          Federated = "arn:aws:iam::357919579947:oidc-provider/token.actions.githubusercontent.com"
+          Federated = aws_iam_openid_connect_provider.github.arn
         }
         Condition = {
           "StringEquals" = {
             "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
           },
           "StringLike" = {
-            # IMPORTANT: Replace with your actual GitHub username and repository name!
             "token.actions.githubusercontent.com:sub" = [
-              "repo:sorcerer-ares/aws-platform:ref:refs/heads/*",
-              "repo:sorcerer-ares/aws-platform:pull_request",
-              "repo:sorcerer-ares/aws-platform:*"
+              "repo:sorcerer-ares/aws-platform:*",
+              "repo:sorcerer-ares@*/aws-platform@*:*"
             ]
           }
         }
