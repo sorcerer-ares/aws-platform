@@ -7,7 +7,7 @@ terraform {
     }
   }
   backend "s3" {
-    bucket = "preview-platform-tfstate-357919579947" # Replace with your tfstate bucket name if different
+    bucket = "iski-bucket-uski-bucket-thisismybucket" # Replace with your tfstate bucket name if different
     region = "us-east-1"
   }
 }
