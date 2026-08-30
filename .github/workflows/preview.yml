@@ -75,4 +75,59 @@ jobs:
           terraform apply -auto-approve \
             -var="pr_number=${PR_NUM}" \
             -var="image_tag=${IMAGE_TAG}"
+      - name: Comment Preview URL on PR
+        uses: actions/github-script@v7
+        if: github.event_name == 'pull_request'
+        env:
+          ALB_DNS: "preview-platform-alb-789010252.us-east-1.elb.amazonaws.com"
+          PR_NUMBER: ${{ github.event.number }}
+          COMMIT_SHA: ${{ github.sha }}
+        with:
+          script: |
+            const prNumber = parseInt(process.env.PR_NUMBER);
+            const albDns = process.env.ALB_DNS;
+            const shortSha = process.env.COMMIT_SHA.substring(0, 7);
+            const previewUrl = `http://${albDns}/pr-${prNumber}/`;
+            const healthUrl = `http://${albDns}/pr-${prNumber}/health`;
 
+            const commentHeader = '<!-- ephemeral-preview-bot -->';
+            const body = `${commentHeader}
+            ###  Ephemeral Preview Environment Ready!
+
+            | Property | Value |
+            | :--- | :--- |
+            | **Status** | 🟢 Deployed |
+            | **Preview URL** | [${previewUrl}](${previewUrl}) |
+            | **Health Endpoint** | [${healthUrl}](${healthUrl}) |
+            | **Latest Commit** | \`${shortSha}\` |
+            | **PR Number** | \`#${prNumber}\` |
+
+            *This environment will be automatically destroyed when this PR is closed.*`;
+
+            // 1. Check for an existing comment left by this bot
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: prNumber,
+            });
+
+            const botComment = comments.find(c => c.body.includes(commentHeader));
+
+            // 2. Update existing comment or create a new one
+            if (botComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: body,
+              });
+              console.log(`Updated existing comment ${botComment.id}`);
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: prNumber,
+                body: body,
+              });
+              console.log('Created new PR preview comment.');
+            }          
