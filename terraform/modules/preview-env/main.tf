@@ -45,7 +45,10 @@ data "aws_ecs_cluster" "cluster" {
 }
 
 data "aws_security_group" "ecs_sg" {
-  name = "preview-platform-ecs-sg" # Ensure matches your base ECS security group name tag
+  filter{
+	name = "group-name"
+	values = ["preview-ecs-task-sg"]
+	}
 }
 
 data "aws_iam_role" "ecs_execution_role" {
