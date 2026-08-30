@@ -19,7 +19,7 @@ def pr_health():
     return {"status": "OK"}
 
 # Mount the router with prefix if provided by ECS
-route_prefix = os.getenv("ROUTE_PREFIX", "")
+route_prefix = os.getenv("ROUTE_PREFIX") or os.getenv("ROOT_PREFIX") or ""
 if route_prefix:
     app.include_router(api_router, prefix=route_prefix)
 else:
