@@ -10,7 +10,7 @@ def read_root():
 
 @api_router.get("/health")
 def health_check():
-    return {"status": "healthy"}
+    return {"status": "OK"}
 
 # Read prefix from ECS environment variable (e.g. "/pr-5"), default to ""
 route_prefix = os.getenv("ROUTE_PREFIX", "")
