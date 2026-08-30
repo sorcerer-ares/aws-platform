@@ -114,7 +114,14 @@ resource "aws_ecs_task_definition" "pr_task" {
           containerPort = 8000
           hostPort      = 8000
         }
-      ]
+      
+	]
+      environment = [
+        {
+          name  = "ROOT_PATH"
+          value = "/pr-${var.pr_number}"
+        }
+      ]	
       logConfiguration = {
         logDriver = "awslogs"
         options = {
