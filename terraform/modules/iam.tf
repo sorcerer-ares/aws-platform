@@ -1,4 +1,6 @@
-# 1. ECS Task Execution Role (Infrastructure permissions)
+# ==========================================
+# 1. ECS TASK EXECUTION ROLE (Infrastructure)
+# ==========================================
 resource "aws_iam_role" "ecs_task_execution_role" {
   name = "preview-ecs-execution-role"
 
@@ -16,13 +18,14 @@ resource "aws_iam_role" "ecs_task_execution_role" {
   })
 }
 
-# Attach the managed policy that allows ECR pulls and CloudWatch log pushes
 resource "aws_iam_role_policy_attachment" "ecs_task_execution_role_policy" {
   role       = aws_iam_role.ecs_task_execution_role.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
 }
 
-# 2. ECS Task Role (Application permissions)
+# ==========================================
+# 2. ECS TASK ROLE (Application Container)
+# ==========================================
 resource "aws_iam_role" "ecs_task_role" {
   name = "preview-ecs-task-role"
 
@@ -39,7 +42,10 @@ resource "aws_iam_role" "ecs_task_role" {
     ]
   })
 }
-# 1. GitHub OIDC Identity Provider
+
+# ==========================================
+# 3. GITHUB OIDC IDENTITY PROVIDER
+# ==========================================
 resource "aws_iam_openid_connect_provider" "github" {
   url             = "https://token.actions.githubusercontent.com"
   client_id_list  = ["sts.amazonaws.com"]
@@ -48,7 +54,10 @@ resource "aws_iam_openid_connect_provider" "github" {
     "1c58a3a8518e8759bf075b76b750d4f2df264fcd"
   ]
 }
-# 2. GitHub Actions IAM Role
+
+# ==========================================
+# 4. GITHUB ACTIONS RUNNER IAM ROLE
+# ==========================================
 resource "aws_iam_role" "github_actions_role" {
   name = "preview-github-actions-role"
 
@@ -77,8 +86,81 @@ resource "aws_iam_role" "github_actions_role" {
   })
 }
 
-# 3. Least-Privilege ECR Push Policy
+# ==========================================
+# 5. GITHUB ACTIONS POLICIES
+# ==========================================
+
+# ECR Push/Pull Policy
 resource "aws_iam_role_policy_attachment" "github_actions_ecr_policy" {
   role       = aws_iam_role.github_actions_role.name
   policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryPowerUser"
+}
+
+# S3 Terraform State Management Policy
+resource "aws_iam_policy" "github_actions_s3_backend" {
+  name        = "preview-github-actions-s3-backend"
+  description = "Allows GitHub Actions runner to manage Terraform state in S3"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid    = "TerraformStateBucketLevel"
+        Effect = "Allow"
+        Action = [
+          "s3:ListBucket",
+          "s3:GetBucketLocation"
+        ]
+        Resource = "arn:aws:s3:::iski-bucket-uski-bucket-thisismybucket"
+      },
+      {
+        Sid    = "TerraformStateObjectLevel"
+        Effect = "Allow"
+        Action = [
+          "s3:GetObject",
+          "s3:PutObject",
+          "s3:DeleteObject"
+        ]
+        Resource = "arn:aws:s3:::iski-bucket-uski-bucket-thisismybucket/*"
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "github_actions_s3_attach" {
+  role       = aws_iam_role.github_actions_role.name
+  policy_arn = aws_iam_policy.github_actions_s3_backend.arn
+}
+
+# Infrastructure Provisioning Permissions (ECS, ELB, VPC Reads, CloudWatch)
+resource "aws_iam_role_policy_attachment" "github_actions_poweruser" {
+  role       = aws_iam_role.github_actions_role.name
+  policy_arn = "arn:aws:iam::aws:policy/PowerUserAccess"
+}
+# In terraform/modules/iam.tf, add this policy:
+resource "aws_iam_policy" "github_actions_ecs_iam_pass" {
+  name        = "preview-github-actions-ecs-iam-pass"
+  description = "Allows GitHub Actions runner to get and pass ECS execution roles"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "iam:GetRole",
+          "iam:PassRole"
+        ]
+        Resource = [
+          "arn:aws:iam::357919579947:role/preview-ecs-execution-role",
+          "arn:aws:iam::357919579947:role/preview-ecs-task-role"
+        ]
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "github_actions_ecs_iam_pass_attach" {
+  role       = aws_iam_role.github_actions_role.name
+  policy_arn = aws_iam_policy.github_actions_ecs_iam_pass.arn
 }
