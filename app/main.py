@@ -1,20 +1,17 @@
 import os
-from fastapi import FastAPI
-root_path = os.getenv("ROOT_PATH", "")
-app = FastAPI(root_path=root_path	)
+from fastapi import FastAPI, APIRouter
 
-@app.get("/")
+app = FastAPI()
+api_router = APIRouter()
+
+@api_router.get("/")
 def read_root():
-    return {"message": "Version 2.0 - PR Preview Test"}
+    return {"message": "Hello from ephemeral environment!"}
 
-@app.get("/health")
+@api_router.get("/health")
 def health_check():
-    return {"status": "OK"}
+    return {"status": "healthy"}
 
-@app.get("/version")
-def get_version():
-    return {"version": "1.0.0"}
-
-@app.get("/info")
-def get_info():
-    return {"app": "demo-service", "description": "Ephemeral environment preview app"}
+# Read prefix from ECS environment variable (e.g. "/pr-5"), default to ""
+route_prefix = os.getenv("ROUTE_PREFIX", "")
+app.include_router(api_router, prefix=route_prefix)
