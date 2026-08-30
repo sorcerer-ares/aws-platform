@@ -64,7 +64,7 @@ resource "aws_lb_target_group" "pr_tg" {
   target_type = "ip"
 
   health_check {
-    path                = "/health"
+    path                = "/pr-${var.pr_number}/health"
     protocol            = "HTTP"
     matcher             = "200"
     interval            = 15
@@ -118,7 +118,7 @@ resource "aws_ecs_task_definition" "pr_task" {
 	]
       environment = [
         {
-          name  = "ROOT_PATH"
+          name  = "ROOT_PREFIX"
           value = "/pr-${var.pr_number}"
         }
       ]	
